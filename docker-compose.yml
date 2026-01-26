@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  geminifit:
+    build: .
+    container_name: geminifit
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      # Replace this with your actual API key in a .env file or environment
+      - API_KEY=${API_KEY}

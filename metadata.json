@@ -1,0 +1,5 @@
+{
+  "name": "GeminiFit Generator",
+  "description": "A smart gym routine generator powered by Gemini AI. Create personalized workout plans based on your goals, injuries, and schedule, with the ability to swap exercises.",
+  "requestFramePermissions": []
+}
