@@ -4,9 +4,9 @@ import { UserPreferences, WorkoutPlan, Exercise, GoalType, SplitType } from "../
 // API Key is strictly from process.env.API_KEY
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// Corrected model names: Flash Preview for Text, Flash Image for Images
+// Corrected model names: Flash Preview for Text, Imagen 4 for Images
 const modelName = "gemini-3-flash-preview";
-const imageModelName = "gemini-2.5-flash-image";
+const imageModelName = "imagen-4.0-generate-001";
 
 // --- PERSISTENCE LAYER (IndexedDB) ---
 // Since web apps cannot write to server-side directories at runtime, 
@@ -278,32 +278,31 @@ export const getExerciseImage = async (exerciseName: string): Promise<string | n
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    // Use generateImages for Imagen models
+    const response = await ai.models.generateImages({
       model: imageModelName,
-      contents: {
-        parts: [{ text: prompt }]
-      },
+      prompt: prompt,
       config: {
-        imageConfig: {
-          aspectRatio: "1:1",
-        }
+        numberOfImages: 1,
+        aspectRatio: "1:1",
+        outputMimeType: "image/jpeg"
       }
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        const base64String = part.inlineData.data;
-        const mimeType = part.inlineData.mimeType || 'image/png';
-        const dataUrl = `data:${mimeType};base64,${base64String}`;
-        
-        // Cache the result in both L1 (Memory) and L2 (Persistent)
-        exerciseImageCache.set(exerciseName, dataUrl);
-        // Fire and forget save to avoid blocking return
-        saveImageToDB(exerciseName, dataUrl).catch(e => console.error("Background save failed", e));
-        
-        return dataUrl;
-      }
+    const base64String = response.generatedImages?.[0]?.image?.imageBytes;
+    
+    if (base64String) {
+      const mimeType = 'image/jpeg';
+      const dataUrl = `data:${mimeType};base64,${base64String}`;
+      
+      // Cache the result in both L1 (Memory) and L2 (Persistent)
+      exerciseImageCache.set(exerciseName, dataUrl);
+      // Fire and forget save to avoid blocking return
+      saveImageToDB(exerciseName, dataUrl).catch(e => console.error("Background save failed", e));
+      
+      return dataUrl;
     }
+    
     return null;
   } catch (error) {
     console.warn("Image generation failed for:", exerciseName, error);
